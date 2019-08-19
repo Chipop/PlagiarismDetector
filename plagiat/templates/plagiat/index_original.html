@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script
+            src="https://code.jquery.com/jquery-3.4.1.min.js"
+            integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mark.js/8.11.1/jquery.mark.min.js"></script>
+
+
+
+    <style>
+        .stop_words {
+            background-color: #00a1ea;
+        }
+
+    </style>
+
+
+    <style>
+        .accordion {
+            background-color: #eee;
+            color: #444;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
+            transition: 0.4s;
+        }
+
+        .active, .accordion:hover {
+            background-color: #ccc;
+        }
+
+        .accordion:after {
+            content: '\002B';
+            color: #777;
+            font-weight: bold;
+            float: right;
+            margin-left: 5px;
+        }
+
+        .active:after {
+            content: "\2212";
+        }
+
+        .panel {
+            padding: 0 18px;
+            background-color: white;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+        }
+    </style>
+
+
+</head>
+<body>
+
+
+<form action="" method="POST">
+
+    {% csrf_token %}
+
+
+
+    <h3>Ecrivez l'article que vous voulez rechercher </h3>
+
+    <textarea name="query" style="width:50%; min-height:300px;">
+        {% if query %}
+            {{ query }}
+        {% endif %}
+    </textarea>
+
+    <br>
+
+    <button type="submit">Rechercher</button>
+    <br>
+</form>
+
+<hr>
+<p>Recherche pour: </p>
+
+<p>
+    {{ query }}
+</p>
+
+<hr>
+
+
+<div>
+
+    {% for result in plagiat_results %}
+        <button class="accordion" data-collapsed="false" data-url='{{ result.url }}' data-keywords="
+                {% for keyword in  result.data.keywords %}{{ keyword }} {% if not forloop.last %},{% endif %}
+                {% endfor %}">{{ result.url }} : <strong>     Plaggié à {{ result.data.similarity|floatformat }} % </strong>
+        </button>
+        <div class="panel">
+            <div class="plagiat_highlited_div" data-url='{{ result.url }}'>
+
+                <div>
+                    <h5>Notre article</h5>
+                    <p  class="plagiat_highlited_div" data-url='{{ result.url }}'>
+                            {{ query }}
+                    </p>
+                </div>
+
+                <div class="plagiat_result" >
+                    <h5>Contenu du site : <a href="{{ result.url }}" target="_blank">{{ result.url }}</a></h5>
+                    <div   class="plagiat_highlited_div" data-url='{{ result.url }}'>
+                            {{ result.data.text }}
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+
+    {% empty %}
+        <p>Aucun résultat.</p>
+    {% endfor %}
+</div>
+
+
+<script>
+
+    $(document).ready(function () {
+
+        // Plagiarism Panel
+
+        var acc = document.getElementsByClassName("accordion");
+        var i;
+
+        for (i = 0; i < acc.length; i++) {
+            acc[i].addEventListener("click", function () {
+                this.classList.toggle("active");
+                var panel = this.nextElementSibling;
+                if (panel.style.maxHeight) {
+                    panel.style.maxHeight = null;
+                } else {
+                    panel.style.maxHeight = panel.scrollHeight + "px";
+                }
+
+                // Highlight the keywords:
+
+                keywords = $(this).attr('data-keywords');
+                data_url = $(this).attr('data-url');
+                data_collapsed = $(this).attr('data-collapsed');
+
+                if(data_collapsed == "false"){
+                    $(`.plagiat_highlited_div[data-url="${data_url}"]`).mark(keywords, {
+                    "accuracy": "exactly"
+                });
+
+                $(`.plagiat_highlited_div[data-url="${data_url}"]`).mark("{% for stopword  in stopwords %} {{ stopword }}  {% endfor %}", {
+                    "accuracy": "exactly",
+                    "className": "stop_words",
+                });
+
+                $(this).attr('data-collapsed',"true");
+                }
+            });
+        }
+
+    });
+</script>
+
+
+</body>
+
+
+</html>
